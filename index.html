@@ -110,5 +110,27 @@
   <!-- Librería QR (CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="script.js"></script>
+  <!-- PANTALLA DEL ALUMNO (cuando entra desde el QR) -->
+<section id="screen-asistencia-alumno" class="card hidden">
+  <h2>Registro de Asistencia</h2>
+  <p>Materia: <strong id="asistencia-materia"></strong></p>
+
+  <form id="form-asistencia-alumno">
+    <label>
+      Nombre del alumno
+      <input type="text" id="alumno-nombre" required>
+    </label>
+
+    <label>
+      DNI / Legajo
+      <input type="text" id="alumno-dni" required>
+    </label>
+
+    <button type="submit" class="btn primary">Registrar asistencia</button>
+  </form>
+
+  <p id="asistencia-ok" class="success"></p>
+</section>
 </body>
 </html>
+
