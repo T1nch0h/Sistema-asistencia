@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sistema de Asistencias</title>
+  <title>Sistema de Asistencia</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,7 +11,7 @@
 
     <!-- LOGIN DOCENTE -->
     <section id="screen-login" class="card visible">
-      <h1>Desarrollo Software-Registre su asistencia</h1>
+      <h1>Registra la asistencia-Desarrollo de Software</h1>
       <p class="muted">Login Docente</p>
       <form id="login-form" class="form">
         <label>
@@ -22,10 +22,10 @@
           Contraseña
           <input id="login-pass" type="password" placeholder="Contraseña" required />
         </label>
-        <button type="submit" class="btn primary">INGRESAR</button>
+        <button type="submit" class="btn primary">Ingresar</button>
         <p id="login-error" class="error" role="alert" aria-live="polite"></p>
       </form>
-      <small class="muted">Usuario/Contraseña ejemplo:<strong></strong></small>
+      <small class="muted">Instituto de Educación Superior N° 11<strong></strong></small>
     </section>
 
     <!-- PANEL DOCENTE -->
@@ -48,7 +48,6 @@
         <button id="btn-view-attendance" class="btn secondary">Ver asistencias</button>
       </div>
     </section>
-    <body>
 
     <!-- GENERAR ASISTENCIA (modal-like dentro SPA) -->
     <section id="screen-generate" class="card hidden">
@@ -110,27 +109,5 @@
   <!-- Librería QR (CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="script.js"></script>
-  <!-- PANTALLA DEL ALUMNO (cuando entra desde el QR) -->
-<section id="screen-asistencia-alumno" class="card hidden">
-  <h2>Registro de Asistencia</h2>
-  <p>Materia: <strong id="asistencia-materia"></strong></p>
-
-  <form id="form-asistencia-alumno">
-    <label>
-      Nombre del alumno
-      <input type="text" id="alumno-nombre" required>
-    </label>
-
-    <label>
-      DNI / Legajo
-      <input type="text" id="alumno-dni" required>
-    </label>
-
-    <button type="submit" class="btn primary">Registrar asistencia</button>
-  </form>
-
-  <p id="asistencia-ok" class="success"></p>
-</section>
 </body>
 </html>
-
