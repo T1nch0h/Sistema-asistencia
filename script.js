@@ -1,273 +1,276 @@
-/* Sistema de Asistencia 100% compatible con GitHub Pages y QR móvil */
-
-/* Detectar si se abre por link QR */
-const params = new URLSearchParams(window.location.search);
-const qrSubject = params.get("subject");
-const qrId = params.get("id");
-
-/* Si viene desde QR → mostrar sólo pantalla alumno */
-if (qrSubject && qrId) {
-    document.querySelectorAll("section").forEach(s => s.style.display = "none");
-    const screenAlumno = document.getElementById("screen-asistencia-alumno");
-    screenAlumno.style.display = "block";
-    document.getElementById("asistencia-materia").textContent = qrSubject;
-}
+/* SISTEMA DE ASISTENCIA – Versión corregida para GitHub Pages */
 
 /* CONFIG */
-const TEACHER_USER = 'Docente';
-const TEACHER_PASS = '2025';
+const TEACHER_USER = "docente";
+const TEACHER_PASS = "1234";
 const SUBJECTS = [
-    'Matemática','Lengua','Historia','Geografía',
-    'Física','Química','Biología','Informática'
+  "Matemática", "Lengua", "Historia", "Geografía",
+  "Física", "Química", "Biología", "Informática"
 ];
+const LINK_TTL_MIN = 15;
 
-/* Helper */
+/* HELPERS */
 const $ = id => document.getElementById(id);
+const now = () => Date.now();
 
-/* Screens */
-const screenLogin = $('screen-login');
-const screenPanel = $('screen-panel');
-const screenGenerate = $('screen-generate');
-const screenStudent = $('screen-asistencia-alumno');
-const screenAttendances = $('screen-attendances');
+/* PANTALLAS */
+const screenLogin = $("screen-login");
+const screenPanel = $("screen-panel");
+const screenGenerate = $("screen-generate");
+const screenStudent = $("screen-student");
+const screenAttendances = $("screen-attendances");
 
-/* Login */
-$('login-form').addEventListener('submit', e => {
-    e.preventDefault();
-    const u = $('login-user').value.trim();
-    const p = $('login-pass').value.trim();
+/* LOGIN */
+const loginForm = $("login-form");
+const loginUser = $("login-user");
+const loginPass = $("login-pass");
+const loginError = $("login-error");
+const docenteNombre = $("docente-nombre");
+const btnLogout = $("btn-logout");
 
-    if (u === TEACHER_USER && p === TEACHER_PASS) {
-        showScreen(screenPanel);
-        renderSubjects();
-    } else {
-        $('login-error').textContent = "Usuario o contraseña incorrectos.";
-    }
+/* GENERAR ASISTENCIA */
+const subjectsList = $("subjects-list");
+const genTitle = $("gen-subject-title");
+const generatedLinkInput = $("generated-link");
+const copyLinkBtn = $("copy-link");
+const qrcodeContainer = $("qrcode");
+const linkValiditySpan = $("link-validity");
+const genBack = $("gen-back");
+
+/* PANTALLA ALUMNO */
+const studentSubjectTitle = $("student-subject");
+const studentInfo = $("student-info");
+const studentForm = $("student-form");
+const studentName = $("student-name");
+const studentDni = $("student-dni");
+const studentMsg = $("student-msg");
+const studentExpired = $("student-expired");
+const studentBack = $("student-back");
+
+/* VER ASISTENCIAS */
+const btnViewAtt = $("btn-view-attendance");
+const attList = $("att-list");
+const attBack = $("att-back");
+
+let currentTeacher = null;
+
+/* STORAGE HELPERS */
+function saveJSON(key, obj) { localStorage.setItem(key, JSON.stringify(obj)); }
+function readJSON(key, fallback = null) {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/* SPA: cambiar pantallas */
+function showScreen(screen) {
+  [
+    screenLogin, screenPanel, screenGenerate,
+    screenStudent, screenAttendances
+  ].forEach(s => s.classList.add("hidden"));
+
+  screen.classList.remove("hidden");
+  window.scrollTo(0, 0);
+}
+
+/* LOGIN DOCENTE */
+loginForm.addEventListener("submit", e => {
+  e.preventDefault();
+  loginError.textContent = "";
+
+  if (loginUser.value.trim() === TEACHER_USER && loginPass.value === TEACHER_PASS) {
+    currentTeacher = TEACHER_USER;
+    docenteNombre.textContent = "Docente: " + currentTeacher;
+    renderSubjects();
+    showScreen(screenPanel);
+  } else {
+    loginError.textContent = "Usuario o contraseña incorrectos.";
+  }
 });
 
-/* Mostrar pantallas */
-function showScreen(screen){
-    document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
-    screen.classList.remove("hidden");
-    window.scrollTo(0,0);
-}
+btnLogout.addEventListener("click", () => showScreen(screenLogin));
 
-/* Render materias */
-function renderSubjects(){
-    const container = $('subjects-list');
-    container.innerHTML = "";
+/* LISTAR MATERIAS */
+function renderSubjects() {
+  subjectsList.innerHTML = "";
+  SUBJECTS.forEach(subject => {
+    const card = document.createElement("div");
+    card.className = "subject-card";
 
-    SUBJECTS.forEach(materia => {
-        const card = document.createElement("div");
-        card.className = "subject-card";
-        card.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                    <div class="subject-title">${materia}</div>
-                </div>
-                <button class="btn small generate-btn" data-materia="${materia}">
-                    Generar Asistencia
-                </button>
-            </div>
-        `;
-        container.appendChild(card);
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="subject-title">${subject}</div>
+        </div>
+        <button class="btn small" data-subject="${subject}">Generar Asistencia</button>
+      </div>
+    `;
+
+    card.querySelector("button").addEventListener("click", () => {
+      generarAsistencia(subject);
     });
 
-    document.querySelectorAll(".generate-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            generarAsistencia(btn.dataset.materia);
-        });
-    });
-}
-/* Generar asistencia: crea link + QR */
-function generarAsistencia(materia){
-    showScreen(screenGenerate);
-
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-
-    /* 🔥 URL fija de GitHub Pages */
-    const base = "https://t1nch0h.github.io/Sistema-asistencia/index.html";
-
-    const link = `${base}?subject=${encodeURIComponent(materia)}&id=${encodeURIComponent(id)}`;
-
-    /* Mostrar link en input */
-    $('generated-link').value = link;
-
-    /* Generar QR */
-    const cont = $('qrcode');
-    cont.innerHTML = "";
-    try {
-        new QRCode(cont, {
-            text: link,
-            width: 180,
-            height: 180
-        });
-    } catch {
-        cont.innerHTML = "<p>Error al generar QR</p>";
-    }
-
-    /* Botón copiar */
-    $('copy-link').onclick = async () => {
-        try {
-            await navigator.clipboard.writeText(link);
-            $('copy-link').textContent = "Copiado ✔";
-            setTimeout(()=> $('copy-link').textContent="Copiar link",1500);
-        } catch(e){
-            alert("No se pudo copiar automáticamente.");
-        }
-    };
-
-    /* Volver */
-    $('gen-back').onclick = () => showScreen(screenPanel);
+    subjectsList.appendChild(card);
+  });
 }
 
-/* ----- Registro alumno (desde QR) ----- */
+/* GENERAR LINK + QR */
+function generarAsistencia(subject) {
+  showScreen(screenGenerate);
 
-$('form-asistencia-alumno').addEventListener("submit", e => {
-    e.preventDefault();
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const expires = now() + LINK_TTL_MIN * 60000;
 
-    const nombre = $('alumno-nombre').value.trim();
-    const dni = $('alumno-dni').value.trim();
-    const materia = $('asistencia-materia').textContent;
+  /* 🔥 URL FIJA DE GITHUB PAGES */
+  const base = "https://t1nch0h.github.io/Sistema-asistencia/index.html";
+  const link = `${base}?subject=${encodeURIComponent(subject)}&id=${encodeURIComponent(id)}`;
 
-    if (!nombre || !dni) return;
+  /* Guardar link activo */
+  const active = readJSON("active_links", {}) || {};
+  active[id] = { subject, id, expires };
+  saveJSON("active_links", active);
 
-    const key = "as_" + materia;
-    const lista = JSON.parse(localStorage.getItem(key) || "[]");
+  generatedLinkInput.value = link;
+  linkValiditySpan.textContent = LINK_TTL_MIN + " minutos";
 
-    lista.push({
-        nombre,
-        dni,
-        fecha: new Date().toLocaleString()
-    });
+  /* Generar QR */
+  qrcodeContainer.innerHTML = "";
+  new QRCode(qrcodeContainer, {
+    text: link,
+    width: 180,
+    height: 180
+  });
 
-    localStorage.setItem(key, JSON.stringify(lista));
+  /* Copiar link */
+  copyLinkBtn.onclick = async () => {
+    await navigator.clipboard.writeText(link);
+    copyLinkBtn.textContent = "Copiado ✔";
+    setTimeout(() => copyLinkBtn.textContent = "Copiar link", 1500);
+  };
 
-    $('asistencia-ok').textContent = "Asistencia registrada correctamente ✔";
-    $('alumno-nombre').value = "";
-    $('alumno-dni').value = "";
-
-    setTimeout(() => $('asistencia-ok').textContent="", 2500);
-});
-/* ----- PARTE 3/3: Ver asistencias, exportar CSV, navegación ----- */
-
-/* Mostrar lista de asistencias por materia (Panel docente) */
-$('btn-view-attendance').addEventListener('click', () => {
-    renderAttendances();
-    showScreen(screenAttendances);
-});
-
-/* Volver desde listado */
-$('att-back').addEventListener('click', () => showScreen(screenPanel));
-
-function renderAttendances(){
-    const cont = $('att-list');
-    cont.innerHTML = '';
-
-    SUBJECTS.forEach(materia => {
-        const key = "as_" + materia;
-        const list = JSON.parse(localStorage.getItem(key) || "[]");
-
-        const card = document.createElement('div');
-        card.className = 'att-card';
-        card.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center">
-                <div>
-                    <strong>${materia}</strong>
-                    <div class="muted small">${list.length} registros</div>
-                </div>
-                <div>
-                    <button class="btn small export-btn" data-materia="${materia}">Exportar CSV</button>
-                </div>
-            </div>
-        `;
-
-        const rows = document.createElement('div');
-        rows.style.marginTop = '8px';
-
-        if(list.length){
-            list.slice().reverse().forEach(item => {
-                const r = document.createElement('div');
-                r.className = 'att-row';
-                r.innerHTML = `<div><strong>${escapeHtml(item.nombre)}</strong><div class="muted small">DNI: ${escapeHtml(item.dni)}</div></div>
-                               <div class="muted small">${escapeHtml(item.fecha)}</div>`;
-                rows.appendChild(r);
-            });
-        } else {
-            rows.innerHTML = `<div class="muted small">No hubo registros aún.</div>`;
-        }
-
-        card.appendChild(rows);
-        cont.appendChild(card);
-    });
-
-    // listeners export
-    cont.querySelectorAll('.export-btn').forEach(b => {
-        b.addEventListener('click', () => {
-            exportCSV(b.dataset.materia);
-        });
-    });
+  genBack.onclick = () => showScreen(screenPanel);
 }
 
-/* Export CSV */
-function exportCSV(materia){
-    const key = "as_" + materia;
-    const list = JSON.parse(localStorage.getItem(key) || "[]");
-    if(!list.length){ alert("No hay registros para exportar."); return; }
-
-    const rows = [['Nombre','DNI','Fecha y hora']];
-    list.forEach(r => rows.push([r.nombre, r.dni, r.fecha]));
-    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `asistencias_${materia.replace(/\s+/g,'_')}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+/* DETECTAR SI ENTRÓ UN ALUMNO POR EL LINK / QR */
+function parseQuery() {
+  const p = new URLSearchParams(location.search);
+  return { subject: p.get("subject"), id: p.get("id") };
 }
 
-/* Logout (si tenés botón) */
-const btnLogout = document.getElementById('btn-logout');
-if(btnLogout){
-    btnLogout.addEventListener('click', () => {
-        showScreen(screenLogin);
-    });
+function openStudentIfParams() {
+  const { subject, id } = parseQuery();
+  if (subject && id) prepareStudent(subject, id);
 }
 
-/* escapeHtml util */
-function escapeHtml(s){
-    return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function prepareStudent(subject, id) {
+  const active = readJSON("active_links", {});
+  const link = active[id];
+
+  if (!link || link.subject !== subject || link.expires < now()) {
+    studentExpired.classList.remove("hidden");
+    studentForm.classList.add("hidden");
+  } else {
+    studentExpired.classList.add("hidden");
+    studentForm.classList.remove("hidden");
+
+    screenStudent.dataset.subject = subject;
+    screenStudent.dataset.id = id;
+  }
+
+  studentSubjectTitle.textContent = "Registrar asistencia - " + subject;
+  studentInfo.textContent = "Materia: " + subject;
+
+  showScreen(screenStudent);
 }
 
-/* On load: si vino por QR (params) ya mostramos pantalla alumno al inicio arriba.
-   Si no vino por QR, mostramos login por defecto.
-*/
-window.addEventListener('load', () => {
-    const paramsNow = new URLSearchParams(window.location.search);
-    const s = paramsNow.get('subject');
-    const i = paramsNow.get('id');
+/* ENVIAR ASISTENCIA */
+studentForm.addEventListener("submit", e => {
+  e.preventDefault();
 
-    if (s && i) {
-        // se mostró ya al inicio, pero aseguramos que el form y labels estén correctos
-        const screenAlumno = document.getElementById("screen-asistencia-alumno");
-        if(screenAlumno){
-            showScreen(screenAlumno);
-            document.getElementById("asistencia-materia").textContent = s;
-        }
-    } else {
-        showScreen(screenLogin);
-    }
+  const subject = screenStudent.dataset.subject;
+  const id = screenStudent.dataset.id;
+
+  const name = studentName.value.trim();
+  const dni = studentDni.value.trim();
+
+  if (!name || !dni) return;
+
+  const active = readJSON("active_links", {});
+  const link = active[id];
+
+  if (!link || link.expires < now()) {
+    studentExpired.classList.remove("hidden");
+    studentForm.classList.add("hidden");
+    return;
+  }
+
+  const key = "attendance_" + subject;
+  const list = readJSON(key, []);
+  list.push({
+    name,
+    dni,
+    when: new Date().toLocaleString()
+  });
+
+  saveJSON(key, list);
+
+  studentMsg.textContent = "Asistencia registrada correctamente ✔";
+  studentName.value = "";
+  studentDni.value = "";
+
+  setTimeout(() => studentMsg.textContent = "", 2500);
 });
 
-/* Exponer util para debug en consola */
-window._asist = {
-    SUBJECTS,
-    clearAllData: () => localStorage.clear()
-};
+studentBack.addEventListener("click", () => {
+  history.replaceState({}, document.title, location.pathname);
+  showScreen(screenLogin);
+});
+
+/* VER ASISTENCIAS */
+btnViewAtt.addEventListener("click", () => {
+  renderAttendances();
+  showScreen(screenAttendances);
+});
+
+attBack.addEventListener("click", () => showScreen(screenPanel));
+
+function renderAttendances() {
+  attList.innerHTML = "";
+
+  SUBJECTS.forEach(subject => {
+    const key = "attendance_" + subject;
+    const list = readJSON(key, []);
+    const card = document.createElement("div");
+
+    card.className = "att-card";
+    card.innerHTML = `
+      <h3>${subject} — ${list.length} registro(s)</h3>
+    `;
+
+    list.forEach(entry => {
+      const row = document.createElement("div");
+      row.className = "att-row";
+      row.innerHTML = `
+        <strong>${entry.name}</strong> — DNI: ${entry.dni}
+        <br><small>${entry.when}</small>
+      `;
+      card.appendChild(row);
+    });
+
+    attList.appendChild(card);
+  });
+}
+
+/* INICIO AUTOMÁTICO */
+window.addEventListener("load", () => {
+  const q = parseQuery();
+  if (q.subject && q.id) openStudentIfParams();
+  else showScreen(screenLogin);
+});
+
 
 
 
