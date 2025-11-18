@@ -169,7 +169,7 @@ if (materiaLink && asistenciaId) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2,8);
     const expires = now() + LINK_TTL_MIN * 60 * 1000;
     // build link: usamos la URL actual (index) + params
-    const base = location.href.split('#')[0].split('?')[0];
+    const base = "https://t1nch0h.github.io/Sistema-asistencia/index.html";
     const link = `${base}?subject=${encodeURIComponent(subject)}&id=${encodeURIComponent(id)}`;
     // Save active link registry
     const active = readJSON('active_links', {}) || {};
@@ -395,3 +395,4 @@ if (materiaLink && asistenciaId) {
   };
 
 })();
+
