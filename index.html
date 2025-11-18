@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sistema de Asistencias</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+
+    <!-- LOGIN DOCENTE -->
+    <section id="screen-login" class="card visible">
+      <h1>Desarrollo Software-Registre su asistencia</h1>
+      <p class="muted">Login Docente</p>
+      <form id="login-form" class="form">
+        <label>
+          Usuario
+          <input id="login-user" type="text" placeholder="Usuario" required />
+        </label>
+        <label>
+          Contraseña
+          <input id="login-pass" type="password" placeholder="Contraseña" required />
+        </label>
+        <button type="submit" class="btn primary">INGRESAR</button>
+        <p id="login-error" class="error" role="alert" aria-live="polite"></p>
+      </form>
+      <small class="muted">Usuario/Contraseña ejemplo:<strong>Docente / 1234</strong></small>
+    </section>
+
+    <!-- PANEL DOCENTE -->
+    <section id="screen-panel" class="card hidden">
+      <header class="panel-header">
+        <div>
+          <h2>Panel del Docente</h2>
+          <p id="docente-nombre" class="muted">Bienvenido/a</p>
+        </div>
+        <div class="panel-actions">
+          <button id="btn-logout" class="btn">Cerrar sesión</button>
+        </div>
+      </header>
+
+      <div class="subjects-grid" id="subjects-list">
+        <!-- Materias dinámicas (generadas por JS) -->
+      </div>
+
+      <div class="panel-footer">
+        <button id="btn-view-attendance" class="btn secondary">Ver asistencias</button>
+      </div>
+    </section>
+    <body>
+
+    <!-- GENERAR ASISTENCIA (modal-like dentro SPA) -->
+    <section id="screen-generate" class="card hidden">
+      <button class="btn back" id="gen-back">← Volver</button>
+      <h3 id="gen-subject-title">Generando asistencia</h3>
+
+      <div class="generate-area">
+        <div>
+          <label>Link para compartir</label>
+          <div class="link-row">
+            <input id="generated-link" readonly />
+            <button id="copy-link" class="btn small">Copiar link</button>
+          </div>
+          <p class="muted small">Validez: <span id="link-validity">15 minutos</span></p>
+        </div>
+
+        <div class="qr-block">
+          <label>Código QR</label>
+          <div id="qrcode"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PÁGINA ALUMNOS: registro (acceden vía link/QR) -->
+    <section id="screen-student" class="card hidden">
+      <button class="btn back" id="student-back">← Volver</button>
+      <h2 id="student-subject">Registrar asistencia</h2>
+      <div id="student-info" class="muted small"></div>
+
+      <form id="student-form" class="form">
+        <label>
+          Nombre del alumno
+          <input id="student-name" type="text" placeholder="Nombre y apellido" required />
+        </label>
+        <label>
+          DNI / Legajo
+          <input id="student-dni" type="text" placeholder="DNI o número de legajo" required />
+        </label>
+        <button type="submit" class="btn primary">Registrar asistencia</button>
+        <p id="student-msg" class="success" aria-live="polite"></p>
+      </form>
+
+      <div id="student-expired" class="error hidden">
+        El link ha expirado o es inválido.
+      </div>
+    </section>
+
+    <!-- PÁGINA VER ASISTENCIAS -->
+    <section id="screen-attendances" class="card hidden">
+      <button class="btn back" id="att-back">← Volver</button>
+      <h2>Asistencias registradas</h2>
+      <div id="att-list" class="attendance-list">
+        <!-- Listado dinámico -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Librería QR (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
